@@ -1,0 +1,59 @@
+<!doctype html><html lang=fa dir=rtl><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>فاکتور | CAFE RIK</title><link rel=stylesheet href=style.css>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head><body><header class=header><nav class="nav container"><a class=mini-logo href=menu.html>CAFE <b>RIK</b></a><a class=cart-btn href=menu.html>← بازگشت به منو</a></nav></header><main class="page container"><div class=invoice id=invoice></div></main><script src=app.js></script><script>
+const firebaseConfig = {
+  databaseURL: "https://cofe-rick-default-rtdb.firebaseio.com"
+};
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const database = firebase.database();
+
+function submitOrder() {
+  let c = getCart();
+  if (!c.length) return alert("فاکتور شما خالی است!");
+
+  let orderNum = Math.floor(1000 + Math.random() * 9000);
+  let total = 0;
+  let items = c.map(i => {
+    let x = menu.find(m => m[0] === i.id);
+    total += x[4] * i.qty;
+    return { name: x[2], qty: i.qty, price: x[4] };
+  });
+
+  let btn = document.getElementById("submitBtn");
+  if(btn) { btn.disabled = true; btn.textContent = "در حال ثبت سفارش..."; }
+
+  database.ref('orders/' + orderNum).set({
+    id: orderNum,
+    time: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+    items: items,
+    total: total,
+    timestamp: Date.now()
+  }).then(() => {
+    localStorage.removeItem("cafeRikCart");
+    alert(`سفارش #${orderNum} با موفقیت ثبت شد!`);
+    window.location.href = "index.html";
+  }).catch(err => {
+    alert("خطا در ثبت سفارش. لطفاً دوباره تلاش کنید.");
+    if(btn) { btn.disabled = false; btn.textContent = "ثبت نهایی و ارسال سفارش ➔"; }
+  });
+}
+
+function renderInvoice(){
+  let b=document.getElementById("invoice"),c=getCart();
+  if(!c.length){
+    b.innerHTML='<div class=empty><div class=emoji>🧾</div><h2>فاکتور شما خالی است</h2><p>از منو آیتم‌های مورد نظرتان را انتخاب کنید.</p><a class=btn href=menu.html>رفتن به منو ←</a></div>';
+    return;
+  }
+  let total=0,rows=c.map(i=>{
+    let x=menu.find(m=>m[0]===i.id),s=x[4]*i.qty;
+    total+=s;
+    return `<div class=row><div><strong>${x[2]}</strong><div style="font-size:11px;color:#687065">${x[3]}</div></div><div class=qty><button onclick="change(${x[0]},-1)">−</button><span>${i.qty}</span><button onclick="change(${x[0]},1)">+</button></div><div class=num>${fa(s)}</div><div><button class=remove onclick="change(${x[0]},-${i.qty})">×</button></div></div>`;
+  }).join("");
+
+  b.innerHTML=`<div class=invoice-head><div class=invoice-brand>CAFE <b>RIK</b></div><p class=ltr>${CAFE.instagram}</p><p>${CAFE.address}</p></div><div class=invoice-table><div class="row head"><div>آیتم</div><div class=num>تعداد</div><div class=num>قیمت</div><div></div></div>${rows}</div><div class=total><span>جمع کل</span><span>${fa(total)}</span></div><button id="submitBtn" onclick="submitOrder()" class="btn" style="width:100%; margin-top:25px; justify-content:center; font-size:16px;">ثبت نهایی و ارسال سفارش ➔</button><div class=invoice-foot>مرسی که کافه ریک رو انتخاب کردی 💚<br>اینجا هر سفارش، شروع یه خاطره خوبه.</div>`;
+}
+renderInvoice();
+</script></body></html>
